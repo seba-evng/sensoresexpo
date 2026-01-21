@@ -1,6 +1,6 @@
 // app/index.tsx
-import DiceScreen from "./game/dice";
+import BurgerScreen from './burger/index';
 
 export default function Index() {
-  return <DiceScreen />;
+  return <BurgerScreen />;
 }
