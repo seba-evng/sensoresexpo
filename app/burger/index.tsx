@@ -16,31 +16,36 @@ export default function BurgerScreen() {
       position: 0,
       timestamp: Date.now(),
     },
+    {
+      id: 'top-bun-initial',
+      type: 'pan-superior',
+      position: 1,
+      timestamp: Date.now(),
+    },
   ]);
 
   const addIngredient = (type: IngredientType) => {
-    const newIngredient: Ingredient = {
-      id: `${type}-${Date.now()}`,
-      type,
-      position: ingredients.length,
-      timestamp: Date.now(),
-    };
+    // Encontrar índice del pan superior
+    const topBunIndex = ingredients.findIndex(i => i.type === 'pan-superior');
     
-    setIngredients([...ingredients, newIngredient]);
-  };
-
-  const finishBurger = () => {
-    // Agregar pan superior solo cuando presionas el botón
-    const hasTopBun = ingredients.some(i => i.type === 'pan-superior');
-    
-    if (!hasTopBun) {
-      const topBun: Ingredient = {
-        id: 'top-bun',
-        type: 'pan-superior',
-        position: ingredients.length,
+    if (topBunIndex !== -1) {
+      // Insertar ANTES del pan superior
+      const newIngredient: Ingredient = {
+        id: `${type}-${Date.now()}`,
+        type,
+        position: topBunIndex,
         timestamp: Date.now(),
       };
-      setIngredients([...ingredients, topBun]);
+      
+      const newIngredients = [...ingredients];
+      newIngredients.splice(topBunIndex, 0, newIngredient);
+      
+      // Reajustar posiciones
+      newIngredients.forEach((ing, idx) => {
+        ing.position = idx;
+      });
+      
+      setIngredients(newIngredients);
     }
   };
 
@@ -61,6 +66,12 @@ export default function BurgerScreen() {
                 position: 0,
                 timestamp: Date.now(),
               },
+              {
+                id: 'top-bun-reset',
+                type: 'pan-superior',
+                position: 1,
+                timestamp: Date.now(),
+              },
             ]);
           },
         },
@@ -68,8 +79,15 @@ export default function BurgerScreen() {
     );
   };
 
-  const ingredientCount = ingredients.length - 1;
-  const hasTopBun = ingredients.some(i => i.type === 'pan-superior');
+  // Contar ingredientes por tipo (sin contar panes)
+  const ingredientCounts = ingredients.reduce((acc, ing) => {
+    if (ing.type !== 'pan-inferior' && ing.type !== 'pan-superior') {
+      acc[ing.type] = (acc[ing.type] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalIngredients = ingredients.length - 2; // Sin contar los 2 panes
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
@@ -83,7 +101,7 @@ export default function BurgerScreen() {
                 Arma tu Burger
               </Text>
               <Text className="text-gray-400 text-base">
-                {ingredientCount} ingrediente{ingredientCount !== 1 ? 's' : ''}
+                {totalIngredients} ingrediente{totalIngredients !== 1 ? 's' : ''}
               </Text>
             </View>
           </View>
@@ -106,26 +124,29 @@ export default function BurgerScreen() {
           <IngredientSelector onSelectIngredient={addIngredient} />
         </View>
 
-        {/* Botón para finalizar - SOLO SI NO TIENE PAN SUPERIOR */}
-        {!hasTopBun && ingredientCount > 0 && (
-          <TouchableOpacity
-            onPress={finishBurger}
-            className="bg-green-500 rounded-xl py-4 mb-4"
-          >
-            <Text className="text-white text-center text-lg font-bold">
-              🍔 Finalizar Hamburguesa
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Info si está completa */}
-        {hasTopBun && (
-          <View className="bg-green-500/20 rounded-xl p-4 mb-4 border border-green-500">
-            <Text className="text-green-400 text-center font-bold">
-              🍔 ¡Hamburguesa lista!
-            </Text>
+        {/* Contador de ingredientes */}
+        <View className="bg-gray-800 rounded-2xl p-4 mb-4">
+          <Text className="text-gray-400 text-sm font-semibold mb-3">
+            Resumen:
+          </Text>
+          <View className="flex-row justify-around">
+            <View className="items-center">
+              <Text className="text-2xl mb-1">🥩</Text>
+              <Text className="text-white font-bold">{ingredientCounts['carne'] || 0}</Text>
+              <Text className="text-gray-500 text-xs">Carne</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-2xl mb-1">🧀</Text>
+              <Text className="text-white font-bold">{ingredientCounts['queso'] || 0}</Text>
+              <Text className="text-gray-500 text-xs">Queso</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-2xl mb-1">🥬</Text>
+              <Text className="text-white font-bold">{ingredientCounts['lechuga'] || 0}</Text>
+              <Text className="text-gray-500 text-xs">Lechuga</Text>
+            </View>
           </View>
-        )}
+        </View>
 
         {/* Lista de ingredientes */}
         <View className="bg-gray-800 rounded-2xl p-4">

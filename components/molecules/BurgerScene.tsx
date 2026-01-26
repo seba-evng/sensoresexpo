@@ -1,10 +1,11 @@
 // components/molecules/BurgerScene.tsx
 import { BURGER_CONFIG, INGREDIENT_DEFINITIONS } from '@/lib/constants/burger';
 import { Ingredient } from '@/types/burger.types';
-import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei/native';
+import { Canvas } from '@react-three/fiber/native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { IngredientModel } from '../atoms/IngredientModel';
+import { GltfModel } from '../atoms/GltfModel';
 
 interface BurgerSceneProps {
   ingredients: Ingredient[];
@@ -12,36 +13,45 @@ interface BurgerSceneProps {
 }
 
 function Scene({ ingredients }: { ingredients: Ingredient[] }) {
-  let currentY = BURGER_CONFIG.baseHeight;
-  const positions: { id: string; type: any; yPosition: number }[] = [];
-
-  ingredients.forEach((ingredient) => {
-    positions.push({
-      id: ingredient.id,
-      type: ingredient.type,
-      yPosition: currentY,
-    });
-    const def = INGREDIENT_DEFINITIONS[ingredient.type];
-    currentY += def.height + BURGER_CONFIG.spacing;
-  });
+  // Calcular posiciones Y para cada ingrediente (apilamiento)
+  const calculateYPosition = (index: number): number => {
+    let yPosition = BURGER_CONFIG.baseHeight;
+    
+    // Sumar las alturas de todos los ingredientes anteriores
+    for (let i = 0; i < index; i++) {
+      const ingredientDef = INGREDIENT_DEFINITIONS[ingredients[i].type];
+      yPosition += (ingredientDef.height + BURGER_CONFIG.spacing);
+    }
+    
+    console.log(`Ingrediente ${index} (${ingredients[index].type}): Y=${yPosition}`);
+    
+    return yPosition;
+  };
 
   return (
     <>
       {/* Iluminación */}
       <ambientLight intensity={0.8} />
+      <OrbitControls enableZoom={true} enablePan={true} />
       <directionalLight position={[10, 10, 5]} intensity={1.2} castShadow />
       <directionalLight position={[-10, 10, -5]} intensity={0.8} />
       <pointLight position={[0, 10, 0]} intensity={0.7} />
       <hemisphereLight groundColor="#444444" intensity={0.5} />
-
-      {/* Renderizar ingredientes */}
-      {positions.map((item) => (
-        <IngredientModel
-          key={item.id}
-          type={item.type}
-          yPosition={item.yPosition}
-        />
-      ))}
+      
+      {/* Renderizar cada ingrediente apilado y centrado */}
+      {ingredients.map((ingredient, index) => {
+        const ingredientDef = INGREDIENT_DEFINITIONS[ingredient.type];
+        const yPosition = calculateYPosition(index);
+        
+        return (
+          <GltfModel
+            key={ingredient.id}
+            modelSource={ingredientDef.modelPath}
+            position={[0, yPosition, 0]}
+            scale={0.5}
+          />
+        );
+      })}
     </>
   );
 }
@@ -54,12 +64,15 @@ export function BurgerScene({ ingredients, size = 300 }: BurgerSceneProps) {
     return () => clearTimeout(timer);
   }, []);
 
+  console.log('🍔 Total ingredientes:', ingredients.length);
+  console.log('📋 Lista:', ingredients.map(i => i.type));
+
   return (
     <View style={{ width: size, height: size }}>
       <Canvas
         camera={{ 
-          position: [4, 3, 12],  // Cámara diagonal y alejada
-          fov: 35,               // Campo de visión más cerrado
+          position: [4, 2, 10],
+          fov: 40,
           near: 0.1,
           far: 1000
         }}
